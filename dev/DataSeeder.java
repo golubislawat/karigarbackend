@@ -147,7 +147,7 @@ public class DataSeeder {
     private void importAll() throws Exception {
         importUsers();
         importAddresses();
-        linkAddressesToUsers();
+        // linkAddressesToUsers();
         importThekedars();
         importThekedarServices();
         importWorkers();
@@ -499,8 +499,7 @@ public class DataSeeder {
         executeDelete("DELETE FROM thekedar_services");
         executeDelete("DELETE FROM workers");
         executeDelete("DELETE FROM thekedars");
-        // Clear address_id FK before deleting addresses (users -> addresses via address_id)
-        executeDelete("UPDATE users SET address_id = NULL");
+        // executeDelete("UPDATE users SET address_id = NULL");
         executeDelete("DELETE FROM addresses");
         executeDelete("DELETE FROM users WHERE role IN ('consumer','thekedar')");
 

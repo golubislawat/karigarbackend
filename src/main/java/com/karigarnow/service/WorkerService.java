@@ -62,7 +62,8 @@ public class WorkerService {
 
         worker = workerRepository.save(worker);
 
-        thekedar.setTeamSize(thekedar.getTeamSize() + 1);
+        int currentTeamSize = thekedar.getTeamSize() != null ? thekedar.getTeamSize() : 0;
+        thekedar.setTeamSize(currentTeamSize + 1);
         thekedarRepository.save(thekedar);
 
         return toResponse(worker);
@@ -112,7 +113,8 @@ public class WorkerService {
         Thekedar thekedar = worker.getThekedar();
         workerRepository.delete(worker);
 
-        thekedar.setTeamSize(Math.max(0, thekedar.getTeamSize() - 1));
+        int currentTeamSize = thekedar.getTeamSize() != null ? thekedar.getTeamSize() : 1;
+        thekedar.setTeamSize(Math.max(0, currentTeamSize - 1));
         thekedarRepository.save(thekedar);
     }
 

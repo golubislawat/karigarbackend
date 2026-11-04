@@ -30,4 +30,6 @@ public class RegisterRequest {
     @NotNull(message = "Role is required")
     @Pattern(regexp = "^(consumer|thekedar)$", message = "Role must be 'consumer' or 'thekedar'")
     private String role;
+
+    private String otp;
 }

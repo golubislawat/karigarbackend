@@ -53,6 +53,25 @@ public class AuthController {
         return ResponseEntity.ok(new ApiResponse<>(true, "User found", userResponse));
     }
 
+    @PostMapping("/send-otp")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> sendOtp(
+            @Valid @RequestBody com.karigarnow.dto.request.SendOtpRequest request) {
+        Map<String, Object> result = authService.sendOtp(request);
+        return ResponseEntity.ok(new ApiResponse<>(true, (String) result.get("message"), result));
+    }
+
+    @PostMapping("/login-otp")
+    public ResponseEntity<ApiResponse<UserResponse>> loginWithOtp(
+            @Valid @RequestBody com.karigarnow.dto.request.LoginOtpRequest request,
+            HttpServletRequest httpRequest,
+            HttpServletResponse httpResponse) {
+        Map<String, Object> result = authService.loginWithOtp(request);
+        String token = (String) result.get("token");
+        UserResponse user = (UserResponse) result.get("user");
+        setJwtCookie(token, httpResponse, httpRequest);
+        return ResponseEntity.ok(new ApiResponse<>(true, "Login successful", user));
+    }
+
     @PostMapping("/register")
     public ResponseEntity<ApiResponse<UserResponse>> register(
             @Valid @RequestBody RegisterRequest request) {

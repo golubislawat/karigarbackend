@@ -29,11 +29,86 @@ public class AuthService {
     private final ThekedarRepository thekedarRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtUtil jwtUtil;
+    private final OtpService otpService;
+    private final EmailService emailService;
+
+    public Map<String, Object> sendOtp(com.karigarnow.dto.request.SendOtpRequest request) {
+        String purpose = request.getPurpose().toUpperCase();
+
+        if ("REGISTER".equals(purpose)) {
+            if (userRepository.existsByEmail(request.getEmail().trim())) {
+                throw new UserAlreadyExistsException("Email already registered");
+            }
+            if (request.getMobile() != null && !request.getMobile().isBlank() && userRepository.existsByMobile(request.getMobile().trim())) {
+                throw new UserAlreadyExistsException("Mobile number already registered");
+            }
+        } else if ("LOGIN".equals(purpose)) {
+            User user = userRepository.findByEmail(request.getEmail().trim())
+                    .orElseThrow(() -> new BadCredentialsException("No account found with this email"));
+            if (!user.getActive()) {
+                throw new BadCredentialsException("Account is deactivated");
+            }
+        }
+
+        String otp = otpService.generateAndSaveOtp(request.getEmail(), purpose);
+        boolean emailSent = emailService.sendOtpEmail(request.getEmail(), otp, purpose);
+
+        return Map.of(
+                "success", true,
+                "message", "6-digit OTP sent successfully to " + request.getEmail(),
+                "email", request.getEmail(),
+                "devOtp", otp,
+                "emailSent", emailSent
+        );
+    }
+
+    @Transactional
+    public Map<String, Object> loginWithOtp(com.karigarnow.dto.request.LoginOtpRequest request) {
+        boolean valid = otpService.verifyOtp(request.getEmail(), request.getOtp(), "LOGIN");
+        if (!valid) {
+            throw new BadCredentialsException("Invalid or expired 6-digit OTP");
+        }
+
+        User user = userRepository.findByEmail(request.getEmail().trim())
+                .orElseThrow(() -> new BadCredentialsException("No account found with this email"));
+
+        if (!user.getActive()) {
+            throw new BadCredentialsException("Account is deactivated");
+        }
+
+        if ("thekedar".equals(user.getRole()) && !thekedarRepository.existsById(user.getId())) {
+            createInitialThekedarProfile(user);
+        }
+
+        String token = jwtUtil.generateToken(user.getEmail(), user.getRole(), user.getId().toString());
+
+        UserResponse userResponse = UserResponse.builder()
+                .id(user.getId().toString())
+                .name(user.getName())
+                .email(user.getEmail())
+                .mobile(user.getMobile())
+                .role(user.getRole())
+                .photo(user.getPhoto())
+                .build();
+
+        return Map.of("token", token, "user", userResponse);
+    }
 
     @Transactional
     public Map<String, Object> register(RegisterRequest request) {
         if (userRepository.existsByEmail(request.getEmail())) {
             throw new UserAlreadyExistsException("Email already registered");
+        }
+
+        if (request.getMobile() != null && userRepository.existsByMobile(request.getMobile())) {
+            throw new UserAlreadyExistsException("Mobile number already registered");
+        }
+
+        if (request.getOtp() != null && !request.getOtp().isBlank()) {
+            boolean valid = otpService.verifyOtp(request.getEmail(), request.getOtp(), "REGISTER");
+            if (!valid) {
+                throw new BadCredentialsException("Invalid or expired 6-digit OTP");
+            }
         }
 
         User user = User.builder()

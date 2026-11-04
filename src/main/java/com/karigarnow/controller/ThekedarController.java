@@ -55,6 +55,14 @@ public class ThekedarController {
                 UUID.fromString(principal.getUserId()), request));
     }
 
+    @PostMapping("/thekedar-services/batch")
+    public ResponseEntity<ApiResponse<List<ThekedarServiceResponse>>> addServicesBatch(
+            @AuthenticationPrincipal UserPrincipal principal,
+            @RequestBody List<ThekedarServiceRequest> requests) {
+        return ResponseEntity.ok(thekedarProfileService.addServicesBatch(
+                UUID.fromString(principal.getUserId()), requests));
+    }
+
     @DeleteMapping("/thekedar-services/{serviceId}")
     public ResponseEntity<ApiResponse<List<ThekedarServiceResponse>>> removeService(
             @AuthenticationPrincipal UserPrincipal principal,

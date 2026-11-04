@@ -24,6 +24,7 @@ public class ConsumerServiceService {
     private final ThekedarRepository thekedarRepository;
     private final ReviewRepository reviewRepository;
 
+    @org.springframework.cache.annotation.Cacheable("activeServices")
     public ApiResponse<List<ServiceResponse>> getAllActiveServices() {
         List<AppService> services = appServiceRepository.findAll();
 

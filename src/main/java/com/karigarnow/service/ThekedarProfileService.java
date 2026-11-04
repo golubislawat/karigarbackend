@@ -59,33 +59,41 @@ public class ThekedarProfileService {
 
     @Transactional
     public ApiResponse<List<ThekedarServiceResponse>> addService(UUID thekedarId, ThekedarServiceRequest request) {
+        return addServicesBatch(thekedarId, List.of(request));
+    }
+
+    @Transactional
+    public ApiResponse<List<ThekedarServiceResponse>> addServicesBatch(UUID thekedarId, List<ThekedarServiceRequest> requests) {
         Thekedar thekedar = thekedarRepository.findById(thekedarId)
                 .orElseThrow(() -> new ResourceNotFoundException("Thekedar not found"));
 
-        AppService appService = appServiceRepository.findById(request.getServiceId())
-                .orElseThrow(() -> new ResourceNotFoundException("Service category not found"));
+        if (requests != null) {
+            for (ThekedarServiceRequest req : requests) {
+                if (req.getServiceId() == null) continue;
+                appServiceRepository.findById(req.getServiceId()).ifPresent(appService -> {
+                    thekedarServiceRepository.findByThekedarIdAndServiceId(thekedarId, req.getServiceId())
+                            .ifPresentOrElse(
+                                    ts -> {
+                                        ts.setCustomRate(req.getCustomRate());
+                                        thekedarServiceRepository.save(ts);
+                                    },
+                                    () -> {
+                                        ThekedarService ts = ThekedarService.builder()
+                                                .thekedar(thekedar)
+                                                .service(appService)
+                                                .customRate(req.getCustomRate())
+                                                .build();
+                                        thekedarServiceRepository.save(ts);
+                                    }
+                            );
+                });
+            }
+        }
 
-        thekedarServiceRepository.findByThekedarIdAndServiceId(thekedarId, request.getServiceId())
-                .ifPresentOrElse(
-                        ts -> {
-                            ts.setCustomRate(request.getCustomRate());
-                            thekedarServiceRepository.save(ts);
-                        },
-                        () -> {
-                            ThekedarService ts = ThekedarService.builder()
-                                    .thekedar(thekedar)
-                                    .service(appService)
-                                    .customRate(request.getCustomRate())
-                                    .build();
-                            thekedarServiceRepository.save(ts);
-                        }
-                );
-
-        // After adding a service, re-sync online status
         syncOnlineStatus(thekedar);
         thekedarRepository.save(thekedar);
 
-        return new ApiResponse<>(true, "Service added/updated", getThekedarServices(thekedarId));
+        return new ApiResponse<>(true, "Service(s) added/updated", getThekedarServices(thekedarId));
     }
 
     /**

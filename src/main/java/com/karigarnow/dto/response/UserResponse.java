@@ -29,4 +29,7 @@ public class UserResponse {
 
     @JsonProperty("photo")
     private String photo;
+
+    @JsonProperty("token")
+    private String token;
 }

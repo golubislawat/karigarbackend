@@ -89,6 +89,7 @@ public class AuthService {
                 .mobile(user.getMobile())
                 .role(user.getRole())
                 .photo(user.getPhoto())
+                .token(token)
                 .build();
 
         return Map.of("token", token, "user", userResponse);
@@ -133,8 +134,10 @@ public class AuthService {
                 .id(user.getId().toString())
                 .name(user.getName())
                 .email(user.getEmail())
+                .mobile(user.getMobile())
                 .role(user.getRole())
                 .photo(user.getPhoto())
+                .token(token)
                 .build();
 
         return Map.of("token", token, "user", userResponse);
@@ -164,8 +167,10 @@ public class AuthService {
                 .id(user.getId().toString())
                 .name(user.getName())
                 .email(user.getEmail())
+                .mobile(user.getMobile())
                 .role(user.getRole())
                 .photo(user.getPhoto())
+                .token(token)
                 .build();
 
         return Map.of("token", token, "user", userResponse);
@@ -202,7 +207,10 @@ public class AuthService {
                             .id(user.getId().toString())
                             .name(user.getName())
                             .email(user.getEmail())
+                            .mobile(user.getMobile())
                             .role(user.getRole())
+                            .photo(user.getPhoto())
+                            .token(token)
                             .build();
                     return Map.<String, Object>of("token", token, "user", userResponse);
                 })
@@ -229,7 +237,10 @@ public class AuthService {
                             .id(newUser.getId().toString())
                             .name(newUser.getName())
                             .email(newUser.getEmail())
+                            .mobile(newUser.getMobile())
                             .role(newUser.getRole())
+                            .photo(newUser.getPhoto())
+                            .token(token)
                             .build();
 
                     return Map.<String, Object>of("token", token, "user", userResponse);

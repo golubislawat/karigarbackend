@@ -36,6 +36,17 @@ public class ThekedarController {
                 UUID.fromString(principal.getUserId()), request));
     }
 
+    @PutMapping("/thekedars/me/availability")
+    public ResponseEntity<ApiResponse<ThekedarSelfProfileResponse>> updateAvailability(
+            @AuthenticationPrincipal UserPrincipal principal,
+            @RequestBody java.util.Map<String, Object> body) {
+        Object val = body != null ? body.get("is_online") : null;
+        boolean isOnline = Boolean.TRUE.equals(val) || "true".equalsIgnoreCase(String.valueOf(val));
+        ThekedarUpdateRequest req = ThekedarUpdateRequest.builder().isOnline(isOnline).build();
+        return ResponseEntity.ok(thekedarProfileService.updateProfile(
+                UUID.fromString(principal.getUserId()), req));
+    }
+
     @PostMapping("/thekedar-services")
     public ResponseEntity<ApiResponse<List<ThekedarServiceResponse>>> addService(
             @AuthenticationPrincipal UserPrincipal principal,

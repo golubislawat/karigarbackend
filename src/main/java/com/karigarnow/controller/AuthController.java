@@ -74,9 +74,13 @@ public class AuthController {
 
     @PostMapping("/register")
     public ResponseEntity<ApiResponse<UserResponse>> register(
-            @Valid @RequestBody RegisterRequest request) {
+            @Valid @RequestBody RegisterRequest request,
+            HttpServletRequest httpRequest,
+            HttpServletResponse httpResponse) {
         Map<String, Object> result = authService.register(request);
+        String token = (String) result.get("token");
         UserResponse user = (UserResponse) result.get("user");
+        setJwtCookie(token, httpResponse, httpRequest);
         return ResponseEntity.ok(new ApiResponse<>(true, "Registration successful", user));
     }
 

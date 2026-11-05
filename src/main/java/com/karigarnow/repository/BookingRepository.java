@@ -14,7 +14,7 @@ import java.util.UUID;
 @Repository
 public interface BookingRepository extends JpaRepository<Booking, UUID> {
 
-    @Query("""
+    @Query(value = """
         SELECT b FROM Booking b
         JOIN FETCH b.consumer c
         JOIN FETCH b.thekedar t
@@ -23,12 +23,13 @@ public interface BookingRepository extends JpaRepository<Booking, UUID> {
         LEFT JOIN FETCH b.address a
         WHERE b.consumer.id = :consumerId
         ORDER BY b.createdAt DESC
-        """)
+        """,
+        countQuery = "SELECT count(b) FROM Booking b WHERE b.consumer.id = :consumerId")
     Page<Booking> findByConsumerIdOrderByCreatedAtDesc(
             @Param("consumerId") UUID consumerId,
             Pageable pageable);
 
-    @Query("""
+    @Query(value = """
         SELECT b FROM Booking b
         JOIN FETCH b.consumer c
         JOIN FETCH b.thekedar t
@@ -38,13 +39,14 @@ public interface BookingRepository extends JpaRepository<Booking, UUID> {
         WHERE b.consumer.id = :consumerId
         AND b.bookingStatus = :status
         ORDER BY b.createdAt DESC
-        """)
+        """,
+        countQuery = "SELECT count(b) FROM Booking b WHERE b.consumer.id = :consumerId AND b.bookingStatus = :status")
     Page<Booking> findByConsumerIdAndBookingStatusOrderByCreatedAtDesc(
             @Param("consumerId") UUID consumerId,
             @Param("status") String status,
             Pageable pageable);
 
-    @Query("""
+    @Query(value = """
         SELECT b FROM Booking b
         JOIN FETCH b.consumer c
         JOIN FETCH b.thekedar t
@@ -53,12 +55,13 @@ public interface BookingRepository extends JpaRepository<Booking, UUID> {
         LEFT JOIN FETCH b.address a
         WHERE b.thekedar.id = :thekedarId
         ORDER BY b.createdAt DESC
-        """)
+        """,
+        countQuery = "SELECT count(b) FROM Booking b WHERE b.thekedar.id = :thekedarId")
     Page<Booking> findByThekedarIdOrderByCreatedAtDesc(
             @Param("thekedarId") UUID thekedarId,
             Pageable pageable);
 
-    @Query("""
+    @Query(value = """
         SELECT b FROM Booking b
         JOIN FETCH b.consumer c
         JOIN FETCH b.thekedar t
@@ -68,7 +71,8 @@ public interface BookingRepository extends JpaRepository<Booking, UUID> {
         WHERE b.thekedar.id = :thekedarId
         AND b.bookingStatus = :status
         ORDER BY b.createdAt DESC
-        """)
+        """,
+        countQuery = "SELECT count(b) FROM Booking b WHERE b.thekedar.id = :thekedarId AND b.bookingStatus = :status")
     Page<Booking> findByThekedarIdAndBookingStatusOrderByCreatedAtDesc(
             @Param("thekedarId") UUID thekedarId,
             @Param("status") String status,

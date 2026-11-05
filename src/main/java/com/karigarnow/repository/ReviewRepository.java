@@ -20,4 +20,8 @@ public interface ReviewRepository extends JpaRepository<Review, UUID> {
         """)
     List<Review> findTop5ByThekedarIdOrderByCreatedAtDesc(
             @Param("thekedarId") UUID thekedarId);
+
+    boolean existsByBookingId(UUID bookingId);
+
+    List<Review> findByThekedarId(UUID thekedarId);
 }

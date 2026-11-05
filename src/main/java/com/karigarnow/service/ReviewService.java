@@ -17,6 +17,9 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.util.List;
 import java.util.UUID;
 
 @Service
@@ -30,6 +33,10 @@ public class ReviewService {
 
     @Transactional
     public ApiResponse<Review> createReview(CreateReviewRequest request, UUID consumerId) {
+        if (reviewRepository.existsByBookingId(request.getBookingId())) {
+            throw new BadRequestException("Feedback has already been submitted for this booking");
+        }
+
         Booking booking = bookingRepository.findById(request.getBookingId())
                 .orElseThrow(() -> new ResourceNotFoundException("Booking not found"));
 
@@ -53,6 +60,14 @@ public class ReviewService {
                 .build();
 
         review = reviewRepository.save(review);
+
+        // Update Thekedar's live rating average
+        List<Review> allReviews = reviewRepository.findByThekedarId(thekedar.getId());
+        if (!allReviews.isEmpty()) {
+            double avg = allReviews.stream().mapToInt(Review::getRating).average().orElse(0.0);
+            thekedar.setRatingAverage(BigDecimal.valueOf(avg).setScale(2, RoundingMode.HALF_UP));
+            thekedarRepository.save(thekedar);
+        }
 
         return new ApiResponse<>(true, "Review submitted successfully", review);
     }

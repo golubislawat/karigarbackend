@@ -37,6 +37,12 @@ public class BookingListResponse {
     @JsonProperty("total_amount")
     private BigDecimal totalAmount;
 
+    @JsonProperty("platform_fee")
+    private BigDecimal platformFee;
+
+    @JsonProperty("thekedar_payout")
+    private BigDecimal thekedarPayout;
+
     @JsonProperty("scheduled_at")
     private LocalDateTime scheduledAt;
 

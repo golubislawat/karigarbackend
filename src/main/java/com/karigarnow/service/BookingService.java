@@ -37,6 +37,7 @@ public class BookingService {
     private final WorkerRepository workerRepository;
     private final AddressRepository addressRepository;
     private final EarningsRepository earningsRepository;
+    private final EmailService emailService;
 
     private static final BigDecimal PLATFORM_COMMISSION = new BigDecimal("0.05");
     private static final SecureRandom random = new SecureRandom();
@@ -110,7 +111,7 @@ public class BookingService {
         log.info("Booking created successfully with ID: {}", booking.getId());
 
         return new ApiResponse<>(true, "Booking created successfully",
-                toBookingResponse(booking, true));
+                toBookingResponse(booking, false));
     }
 
     // ---------- LIST BOOKINGS ----------
@@ -159,7 +160,7 @@ public class BookingService {
         validateBookingAccess(booking, role, userId);
 
         return new ApiResponse<>(true, "Booking fetched successfully",
-                toBookingResponse(booking, true));
+                toBookingResponse(booking, false));
     }
 
     // ---------- ACCEPT BOOKING ----------
@@ -180,8 +181,34 @@ public class BookingService {
         booking.setBookingStatus("accepted");
         booking = bookingRepository.save(booking);
 
-        return new ApiResponse<>(true, "Booking accepted successfully",
-                toBookingResponse(booking, true));
+        // Send Arrival OTP to Consumer via Email
+        if (booking.getConsumer() != null && booking.getConsumer().getEmail() != null) {
+            String sName = booking.getService() != null ? booking.getService().getName() : "Service";
+            String tName = (booking.getThekedar() != null && booking.getThekedar().getUser() != null)
+                    ? booking.getThekedar().getUser().getName() : "Thekedar";
+            emailService.sendBookingOtpToConsumer(
+                    booking.getConsumer().getEmail(),
+                    booking.getConsumer().getName(),
+                    sName,
+                    tName,
+                    otp
+            );
+        }
+
+        // Send Job Confirmation Email to Thekedar
+        if (booking.getThekedar() != null && booking.getThekedar().getUser() != null) {
+            String sName = booking.getService() != null ? booking.getService().getName() : "Service";
+            String cName = booking.getConsumer() != null ? booking.getConsumer().getName() : "Customer";
+            emailService.sendBookingAlertToThekedar(
+                    booking.getThekedar().getUser().getEmail(),
+                    booking.getThekedar().getUser().getName(),
+                    sName,
+                    cName
+            );
+        }
+
+        return new ApiResponse<>(true, "Booking accepted. Verification OTP emailed to consumer.",
+                toBookingResponse(booking, false));
     }
 
     // ---------- REJECT BOOKING ----------
@@ -310,12 +337,26 @@ public class BookingService {
                 .build();
         earningsRepository.save(earnings);
 
-        // Increment thekedar total_jobs
+        // Increment thekedar total_jobs safely
         Thekedar thekedar = booking.getThekedar();
-        thekedar.setTotalJobs(thekedar.getTotalJobs() + 1);
+        thekedar.setTotalJobs((thekedar.getTotalJobs() != null ? thekedar.getTotalJobs() : 0) + 1);
         thekedarRepository.save(thekedar);
 
         booking = bookingRepository.save(booking);
+
+        // Send completion emails to consumer and thekedar
+        try {
+            String sName = booking.getService() != null ? booking.getService().getName() : "Service";
+            String payoutStr = "₹" + booking.getThekedarPayout();
+            if (booking.getConsumer() != null && booking.getConsumer().getEmail() != null) {
+                emailService.sendJobCompletedEmail(booking.getConsumer().getEmail(), booking.getConsumer().getName(), sName, payoutStr, false);
+            }
+            if (booking.getThekedar() != null && booking.getThekedar().getUser() != null) {
+                emailService.sendJobCompletedEmail(booking.getThekedar().getUser().getEmail(), booking.getThekedar().getUser().getName(), sName, payoutStr, true);
+            }
+        } catch (Exception ex) {
+            log.warn("Could not send completion email: {}", ex.getMessage());
+        }
 
         return new ApiResponse<>(true, "Booking completed successfully",
                 toBookingResponse(booking, false));
@@ -426,6 +467,15 @@ public class BookingService {
                     .build();
         }
 
+        BigDecimal payout = booking.getThekedarPayout();
+        if (payout == null && booking.getTotalAmount() != null) {
+            payout = booking.getTotalAmount().multiply(new BigDecimal("0.95"));
+        }
+        BigDecimal fee = booking.getPlatformFee();
+        if (fee == null && booking.getTotalAmount() != null) {
+            fee = booking.getTotalAmount().multiply(new BigDecimal("0.05"));
+        }
+
         return BookingResponse.builder()
                 .id(booking.getId())
                 .service(ServiceInfoResponse.builder()
@@ -445,8 +495,8 @@ public class BookingService {
                 .bookingStatus(booking.getBookingStatus())
                 .paymentStatus(booking.getPaymentStatus())
                 .totalAmount(booking.getTotalAmount())
-                .platformFee(booking.getPlatformFee())
-                .thekedarPayout(booking.getThekedarPayout())
+                .platformFee(fee)
+                .thekedarPayout(payout)
                 .assignedWorkers(workerResponses)
                 .hasReview(booking.getReviews() != null && !booking.getReviews().isEmpty())
                 .review(reviewResponse)
@@ -465,6 +515,15 @@ public class BookingService {
             thekedarName = booking.getThekedar().getUser().getName();
         }
 
+        BigDecimal payout = booking.getThekedarPayout();
+        if (payout == null && booking.getTotalAmount() != null) {
+            payout = booking.getTotalAmount().multiply(new BigDecimal("0.95"));
+        }
+        BigDecimal fee = booking.getPlatformFee();
+        if (fee == null && booking.getTotalAmount() != null) {
+            fee = booking.getTotalAmount().multiply(new BigDecimal("0.05"));
+        }
+
         return BookingListResponse.builder()
                 .id(booking.getId())
                 .serviceName(booking.getService() != null ? booking.getService().getName() : null)
@@ -473,10 +532,12 @@ public class BookingService {
                 .bookingStatus(booking.getBookingStatus())
                 .paymentStatus(booking.getPaymentStatus())
                 .totalAmount(booking.getTotalAmount())
+                .platformFee(fee)
+                .thekedarPayout(payout)
                 .scheduledAt(booking.getScheduledAt())
                 .workersNeeded(booking.getWorkersNeeded())
                 .createdAt(booking.getCreatedAt())
-                .otp(booking.getOtp())
+                .otp(null)
                 .otpVerified(booking.getOtpVerified())
                 .build();
     }

@@ -55,9 +55,8 @@ public class AuthService {
 
         return Map.of(
                 "success", true,
-                "message", "6-digit OTP sent successfully to " + request.getEmail(),
+                "message", "6-digit OTP sent successfully to your email: " + request.getEmail(),
                 "email", request.getEmail(),
-                "devOtp", otp,
                 "emailSent", emailSent
         );
     }

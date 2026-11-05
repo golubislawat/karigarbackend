@@ -51,13 +51,12 @@ public class AuthService {
         }
 
         String otp = otpService.generateAndSaveOtp(request.getEmail(), purpose);
-        boolean emailSent = emailService.sendOtpEmail(request.getEmail(), otp, purpose);
+        emailService.sendOtpEmail(request.getEmail(), otp, purpose);
 
         return Map.of(
                 "success", true,
                 "message", "6-digit OTP sent successfully to your email: " + request.getEmail(),
-                "email", request.getEmail(),
-                "emailSent", emailSent
+                "email", request.getEmail()
         );
     }
 
